@@ -16,189 +16,242 @@
 
 #include "newAsmTemplate.inc"
 #include <xc.inc>
-;----------------------------------
-
-;----------------------------------
-; PROGRAM CONSTANTS
-;----------------------------------
-#define	zero	0b00111111
-#define one	0b00000110
-#define two	0b01011011
-#define three	0b01001111
-#define four	0b01100110
-#define five	0b01101101
-#define six	0b01111101
-#define seven	0b00000111
-#define eight	0b01111111
-#define nine	0b01101111
-#define a	0b01110111
-#define b	0b01111100
-#define c	0b00111001
-#define d	0b01011110
-#define	e	0b01111001
-#define f	0b01110001
-REG10	EQU	0x10
-REG11	EQU	0x11
-inner_loop  EQU	240
-outer_loop  EQU	240
-ZEROcheck   EQU	0x40
-Fcheck	    EQU	0x41
-;----------------------------------
+;;----------------------------------
 
 ;----------------------------------
 ; PROGRAM INPUTS/OUTPUTS
 ;----------------------------------
 #define	_buttonA	PORTB, 0
 #define _buttonB	PORTB, 1
-#define sevenSeg	PORTD
-;----------------------------------
-    
-;----------------------------------
-; MAIN PROGRAM
-;----------------------------------
-PSECT absdata,abs,ovrld
 
-ORG	0x20	    
-_initialize:
-    RCALL    _setPortD
-    RCALL    _setPortB
-    RCALL    _loadValues
+#define aLED    PORTD, 0
+#define bLED    PORTD, 1
+#define cLED    PORTD, 2
+#define dLED    PORTD, 3
+#define eLED    PORTD, 4
+#define fLED    PORTD, 5
+#define gLED    PORTD, 6
+#define hLED    PORTD, 7	    
+   
+;---------------------
+; Program Constants
+;---------------------
+; The EQU (Equals) directive is used to assign a constant value to a symbolic name or label.
+; It is simpler and is typically used for straightforward assignments.
+;It directly substitutes the defined value into the code during the assembly process.
 
-_main:
-    RCALL   _checkSwitches
-    BRA	    _main
-    
-    
-_setPortD:
-    BANKSEL	PORTD 
-    CLRF	PORTD 
-    BANKSEL	LATD 
-    CLRF	LATD 
-    BANKSEL	ANSELD 
-    CLRF	ANSELD 
-    MOVLW	0b00000000 
-    MOVWF	TRISD 
-    RETURN
+Inner_loop  equ 0xFF;180 // in decimal
+Outer_loop  equ 0xFF;190	
 
-_setPortB:
+REG10   EQU     0x10   
+REG11   EQU     0x11
+REG01   EQU     0x01 
+
+REG20	EQU     0x20 
+REG21	EQU     0x21 
+REG22	EQU     0x22 
+
+REG40	EQU     0x40 
+REG41	EQU     0x41 ; BUTTON A
+REG42	EQU     0x42 ; BUTTON B
+REG45	EQU	0x45 
+	
+REG60	EQU     0x50 ;
+REG61	EQU     0x51 ; BUTTON A
+REG62	EQU     0x52 ; BUTTON B
+
+REG70	EQU     0x70 ; 
+REG71	EQU     0x71 ; 
+REG72	EQU     0x72 ;
+
+REG7F	EQU	0x7F ; 
+
+//holding the seven segment values	
+REG30  EQU  0x30
+REG31  EQU  0x31
+REG32  EQU  0x32
+REG33  EQU  0x33
+REG34  EQU  0x34
+REG35  EQU  0x35
+REG36  EQU  0x36
+REG37  EQU  0x37
+REG38  EQU  0x38
+REG39  EQU  0x39
+REG3A  EQU  0x3A
+REG3B  EQU  0x3B
+REG3C  EQU  0x3C
+REG3D  EQU  0x3D
+REG3E  EQU  0x3E
+REG3F  EQU  0x3F
+	
+REG90	EQU	0x90 ; UPPER BOUND FOR 7-SEG TABLE
+REG91	EQU	0x91 ; 
+REG95	EQU	0x92 ; HOLDS NUMBER OF INPUTS ON
+
+
+
+;---------------------
+; Main Program
+;---------------------
+PSECT absdata,abs,ovrld        ; Do not change
+   
+	ORG	00		;Reset vector
+	GOTO	_Initialize
+
+	ORG	0020H		;Begin assembly at 0020H
+
+delay_loop: 
+    MOVLW       Inner_loop
+    MOVWF       REG10
+    MOVLW       Outer_loop
+    MOVWF       REG11
+_loop1:
+    DECF        REG10,1
+    //BNZ         _loop1
+    MOVLW       Inner_loop ; Re-initialize the inner loop for when the outer loop decrements.
+    MOVWF       REG10
+    DECF        REG11,1 // outer loop
+    BNZ        _loop1
+    RETURN	
+
+_Initialize: 
+; Set up REG with values for 7-SEG    
+    MOVLW   0x11
+    MOVWF   REG7F 
+    MOVLW   0x3F
+    MOVWF   REG30
+    MOVLW   0x06
+    MOVWF   REG31
+    MOVLW   0x5B
+    MOVWF   REG32
+    MOVLW   0x4F
+    MOVWF   REG33
+    MOVLW   0x66
+    MOVWF   REG34
+    MOVLW   0x6D
+    MOVWF   REG35
+    MOVLW   0x7D
+    MOVWF   REG36
+    MOVLW   0x07
+    MOVWF   REG37
+    MOVLW   0x7F
+    MOVWF   REG38
+    MOVLW   0x67
+    MOVWF   REG39
+    MOVLW   0x77
+    MOVWF   REG3A
+    MOVLW   0x7C
+    MOVWF   REG3B
+    MOVLW   0x39
+    MOVWF   REG3C
+    MOVLW   0x5E
+    MOVWF   REG3D
+    MOVLW   0x79
+    MOVWF   REG3E
+    MOVLW   0x71
+    MOVWF   REG3F
+    SETF    REG90
+    //Setting up Port D
+    BANKSEL	PORTD ;
+    CLRF	PORTD ;Init PORTD 
+    BANKSEL	LATD ;Data Latch
+    CLRF	LATD ;
+    BANKSEL	ANSELD ;
+    CLRF	ANSELD ;digital I/O
+    BANKSEL	TRISD ;
+    MOVLW	0b00000000 ;Set RD[7:1] as outputs 
+    MOVWF	TRISD ;and set RD0 as ouput
+    //Setting up B
     BANKSEL	PORTB 
     CLRF	PORTB 
     BANKSEL	LATB 
     CLRF	LATB 
     BANKSEL	ANSELB 
-    CLRF	ANSELB
-    MOVLW	0b11111100 
+    CLRF	ANSELB 
+    BANKSEL	TRISB  
+    MOVLW	0b00000011 
     MOVWF	TRISB 
-    RETURN
     
-_loadValues:
-MOVLW	0x30
-MOVWF	ZEROcheck
-MOVLW	0x3F
-MOVWF	Fcheck
-MOVLW	zero	    
-MOVWF	0x30	    
-MOVLW	one	    
-MOVWF	0x31	    
-MOVLW	two
-MOVWF	0x32	    
-MOVLW	three
-MOVWF	0x33	   
-MOVLW	four
-MOVWF	0x34	    
-MOVLW	five
-MOVWF	0x35	    
-MOVLW	six
-MOVWF	0x36	   
-MOVLW	seven
-MOVWF	0x37	   
-MOVLW	eight
-MOVWF	0x38	  
-MOVLW	nine
-MOVWF	0x39	 
-MOVLW	a
-MOVWF	0x3A	
-MOVLW	b
-MOVWF	0x3B	 
-MOVLW	c
-MOVWF	0x3C	
-MOVLW	d
-MOVWF	0x3D	    
-MOVLW	e
-MOVWF	0x3E	    
-MOVLW	f	    
-MOVWF	0x3F	    
-LFSR	0, 0x30	    ;load FSR0 
-MOVFF	INDF1, PORTD
-RETURN
+   
+_setPointer:
+    ;Setting up pointer 
+    CLRF	FSR0H
+    MOVLW	0x80
+    MOVWF	FSR0L
+    MOVFF	INDF0,PORTD
+
+_main:
+    CLRF    STATUS
+    CLRF    REG45
+    MOVFF   PORTB,WREG
+    MOVWF   REG40 
+    ;Check Button A 
+    BTFSC   REG40,0
+    CALL    _bit0
+    BTFSS   REG40,0
+    CALL    clear_bit0
+    ;Check Button B 
+    BTFSC   REG40,1
+    CALL    _bit1
+    BTFSS   REG40,1
+    CALL    clear_bit1
+    CALL    delay_loop
+    CALL    delay_loop
+    ;CHECK IF # of ON BUTTON is more than zero
+    MOVLW   0x00
+    CPFSGT  REG45 ; SKIP Next line if you have atleast 1 button on
+    GOTO    _main
+    ;CHECK IF # of ON buttons is Equal to 1 
+    MOVLW   0x01
+    CPFSEQ REG45
+    GOTO    _setPointer
+    ; Check which button is on
+    CPFSEQ  REG41 
+    GOTO    _DecCount
+    GOTO    _IncCount
     
+    
+_DecCount:
+    MOVFF   POSTDEC0,REG01
+    MOVLW   0x11
+    CPFSEQ  INDF0
+    MOVFF   INDF0,PORTD
+    CPFSEQ  INDF0
+    GOTO    _main
+    MOVLW   0x8F
+    MOVWF   FSR0L
+    MOVFF   INDF0,PORTD
+    GOTO    _main
+    
+_IncCount:    
+    SETF    WREG
+    CPFSEQ  PREINC0
+    MOVFF   INDF0,PORTD
+    CPFSEQ  INDF0
+    GOTO    _main
+    GOTO    _setPointer
 
     
-_checkSwitches:
-BTFSS	_buttonA	;check if switch A is pressed
-BRA	_Aoff		;if switch A not on
-BTFSS	_buttonB	;if switch A is set --> check switch B
-BRA	_countUP	;if switch B is not on
-BRA	_bothON		;if switch A and B are ON
-RETURN
+_bit0:
+    MOVLW   0x01
+    MOVWF   REG41
+    INCF    REG45
+    Return
     
-_Aoff:
-BTFSS	_buttonB    ;check if switch B is set
-GOTO	_bothOFF    ;if both A and B are off
-GOTO	_countDOWN  ;if A is off and B is on --> count down
+clear_bit0:
+    MOVLW   0x00
+    MOVWF   REG41
+    Return
+    
+_bit1:
+    MOVLW   0x01
+    MOVWF   REG42
+    INCF    REG45
+    Return
 
-_onlyA_ON:
-GOTO	_countUP    ;only A is ON
-
-_bothON:
-LFSR	1,0x30
-MOVFF	INDF1, PORTD
-GOTO	_main
-    
-_bothOFF:
-MOVFF	INDF1, PORTD
-GOTO	_checkSwitches
-    
-_countUP:
-CLRF	WREG		;clear WREG
-MOVFF	FSR1, WREG
-CPFSEQ	0x41		;check if FSR1 equals F (Fcheck REG)
-GOTO	_increment
-LFSR	1, 0x30		;load 0 back into FSR1
-CALL	_delayLoop
-_increment:
-MOVFF	INDF1, PORTD	;move value to PORTD
-MOVFF	POSTINC1, PORTD	;move to next value counting up
-CALL	_delayLoop
-CALL	_checkSwitches
-GOTO	_countUP  ;_main	;loop again
-    
-_countDOWN:
-CLRF	WREG		;clear WREG
-MOVFF	FSR1, WREG
-CPFSEQ	0x40		;check if FSR1 equals ZERO (ZEROcheck REG)
-GOTO	_decrement	
-LFSR	1, 0x3F		;load F back into FSR1
-CALL	_delayLoop
-_decrement:
-MOVFF	POSTDEC1, PORTD	;move to next value counting down
-CALL	_delayLoop
-CALL	_checkSwitches
-GOTO    _countDOWN	
-
-    
-_delayLoop: 
-    MOVLW       inner_loop
-    MOVWF       REG10
-    MOVLW       outer_loop
-    MOVWF       REG11
-_loop1:
-    DECF        REG10,1
-    BNZ         _loop1
-    MOVLW	inner_loop
-    MOVWF	REG10
-    DECF        REG11,1 
-    BNZ        _loop1
-    RETURN
-    
-;END    
+clear_bit1:
+    MOVLW   0x00
+    MOVWF   REG42
+    Return
+        
+END
