@@ -1,0 +1,235 @@
+/*
+ * File:   calculator.c
+ * Author: Cesar Jaimes
+ * Purpose: Build a calculator that uses two inputs made through a keypad, and 
+ * can add, multiply, subtract, or divide those values. The output should be
+ * represented in binary using leds
+ * Dependencies: stdio.h, stdlib.h, math.h, pic18f47k42.h, myheader.h
+ * MPLAB X IDE v6.20 & XC8
+ * Inputs: X_Input_REG and Y_Input_REG (PORTB)
+ * Outputs: Result (PORTD)
+ * Created on April 4, 2025, 4:42 PM
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <xc.h> 
+#include "myheader.h"
+#include "C:\Program Files\Microchip\xc8\v3.00\pic\include\proc\pic18f47k42.h"
+
+#define _XTAL_FREQ 4000000   // Fosc  frequency for _delay()  library
+#define FCY    _XTAL_FREQ/4
+
+
+char Display_Result = 0; // holds result of operation that will be displayed 
+char X_Input = 0; // first number put into the calculator 
+char Y_Input = 0; // second number put into the calculator
+char X_keypress = 0; // holds the value of the pressed value for input X
+char Y_keypress = 0; // holds the value of the pressed value for input y
+int Digit_Num = 0; // number of digits our input X/input Y has received 
+int Operation = 0; // holds the value of what operation was selected
+int op_num = 0; 
+char test = 0; //
+int Final_Check = 0; //
+
+//initialize our keypad
+void init_keypad(){
+    LATB = 0b00000000;
+    ANSELB = 0b00000000;
+    PORTB = 0b00000000; //turns off all PORTB outputs
+    TRISB = 0b11110000; // sets PORTB as inputs for rows and outputs for columns
+    
+    LATD = 0b00000000;
+    ANSELD = 0b00000000;
+    TRISD = 0b00000000; // sets PORTD as all outputs
+    PORTD = 0b00000000; // turns off PORTD outputs
+
+    //clear all our values
+    X_Input = 0;
+    X_keypress = 0;
+    Y_keypress = 0;
+    Y_Input = 0;
+    Digit_Num = 0;
+    Operation = 0;
+    op_num = 0;
+    Final_Check = 0;
+}
+
+char get_keypad_OP() {
+    
+    PORTBbits.RB3 = 1;  // Checking right most column
+        if (PORTBbits.RB4 == 1) 
+            return '*';
+    PORTBbits.RB3 = 0;
+    
+    PORTBbits.RB0 = 1;  // Checking far right column for operations
+        if (PORTBbits.RB7 == 1) 
+            return op_num = op_num + 1, 'A'; 
+        if (PORTBbits.RB6 == 1)
+            return op_num = op_num + 1, 'B'; 
+        if (PORTBbits.RB5 == 1) 
+            return op_num = op_num + 1, 'C'; 
+        if (PORTBbits.RB4 == 1) 
+            return op_num = op_num + 1, 'D'; 
+    PORTBbits.RB0 = 0;
+    }
+
+char get_keypad_input(){
+
+    PORTBbits.RB3 = 1;  // Checking far left column
+        if (PORTBbits.RB7 == 1)
+            return Final_Check = Final_Check +1, '1';
+        if (PORTBbits.RB6 == 1)
+            return Final_Check = Final_Check +1, '4';
+        if (PORTBbits.RB5 == 1)
+            return Final_Check = Final_Check +1, '7';
+        if (PORTBbits.RB4 == 1) 
+            return  '*';
+    PORTBbits.RB3 = 0;
+     
+    PORTBbits.RB2 = 1; // check the second from left column
+        if (PORTBbits.RB7 == 1)
+            return Final_Check = Final_Check +1, '2';
+        if (PORTBbits.RB6 == 1)
+            return Final_Check = Final_Check +1, '5';
+        if (PORTBbits.RB5 == 1)
+            return Final_Check = Final_Check +1, '8';
+        if (PORTBbits.RB4 == 1)
+            return Final_Check = Final_Check +1, '0';
+    PORTBbits.RB2 = 0;
+     
+    PORTBbits.RB1 = 1; // Checking second from right column 
+        if (PORTBbits.RB7 == 1)
+            return Final_Check = Final_Check +1, '3';
+        if (PORTBbits.RB6 == 1)
+            return Final_Check = Final_Check +1, '6';
+        if (PORTBbits.RB5 == 1)
+            return Final_Check = Final_Check +1, '9';
+        if (PORTBbits.RB4 == 1)  
+            return Final_Check = Final_Check +1, '#';
+    PORTBbits.RB1 = 0;
+}
+
+
+char math(char Operation){ //defines keypad characters to their specific functions
+
+        if (Operation == 'A')
+        return (X_Input + Y_Input);
+        if (Operation == 'B')
+        return (X_Input - Y_Input);
+        if (Operation == 'C')
+        return (X_Input * Y_Input);
+        if (Operation == 'D')
+        return (X_Input / Y_Input);
+}
+
+
+void clear() {
+        PORTD = 0xFF;
+        __delay_ms(500);
+        PORTD = 0;
+        PORTB = 0;
+        Digit_Num = 0;
+        X_Input = 0;
+        X_keypress = 0;
+        Y_keypress = 0;
+        Y_Input = 0;
+        Final_Check = 0;
+        op_num = 0;
+        Operation = 0;
+}
+// ----- Calculating code below -----//
+
+void main(void) {
+    init_keypad();
+start:    
+    clear();
+    while(1) {
+        
+        // Get first full number
+        while (Digit_Num < 2) { //sets up so that two digits can be pressed 
+            X_keypress = get_keypad_input();
+            restart:
+            if (X_keypress == '*'){
+                goto start;
+            }
+            if (X_keypress != '\0' && X_keypress >= '0' && X_keypress <= '9') {
+                X_Input = X_Input * 10 + (X_keypress - '0');
+                PORTD = 1;
+                __delay_ms(750);
+                PORTD = 0;
+                Digit_Num++;
+            }
+        }
+        
+        // Reset for second number
+        Y_Input = 0;
+        PORTD = 1; // shows our number was received through LED in portd
+        Digit_Num = 0;
+        __delay_ms(750);
+        op_num = 0;
+        
+        //ensuring operation is received
+        while (op_num < 1) {
+            Operation = get_keypad_OP(); // Get arithmetic operation
+            if (Operation == '*'){
+                goto start;
+            }
+        }
+        PORTD = 3; // tells us our operation was received
+        __delay_ms(750);
+        
+        // Getting second number 
+        while (Digit_Num < 2 ) {
+            Y_keypress = get_keypad_input();
+            if (Y_keypress == '*'){
+                goto start;
+            }
+            if (Y_keypress != '\0' && Y_keypress >= '0' && Y_keypress <= '9') {
+                Y_Input = Y_Input * 10 + (Y_keypress - '0');
+                PORTD = 2;
+                __delay_ms(750);
+                PORTD = 0;
+                Digit_Num++;
+            }
+        }
+        
+        PORTD = 2; // shows that we received our second value
+        Digit_Num = 0;
+        __delay_ms(750);
+        Final_Check = 0; // final check is reset
+        
+        // Show result or start over
+        while (Final_Check < 2 ){
+            test = get_keypad_input();
+            if (test == '*'){
+                goto start;
+            }
+            
+            else if (test == '#') {
+                Display_Result = math(Operation);
+                PORTD = Display_Result;
+                __delay_ms(750);
+            }
+            
+        }
+                
+        if (test == '#') {
+            goto start;
+        }
+        // clears all of our values for restart
+        PORTD = 0;
+                PORTB = 0;
+                Digit_Num = 0;
+                X_Input = 0;
+                X_keypress = test;
+                Y_keypress = 0;
+                Y_Input = 0;
+                Final_Check = 0;
+                op_num = 0;
+                Operation = 0;
+                goto restart;
+                
+   }
+}
